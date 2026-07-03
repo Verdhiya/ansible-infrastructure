@@ -1,0 +1,51 @@
+# Ansible specific
+*.retry
+.ansible/
+/tmp/
+ansible_facts/
+
+# Fact caching
+/tmp/ansible_facts
+*.fact
+
+# Vault password files
+.vault_pass
+vault_pass.txt
+*.vault
+
+# SSH keys (IMPORTANT - never commit private keys!)
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+*.ppk
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Sensitive data
+group_vars/*/vault.yml
+host_vars/*/vault.yml
