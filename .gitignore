@@ -1,3 +1,10 @@
+# Real inventory with actual IPs (keep local only)
+inventories/production/hosts.real
+inventories/production/hosts
+
+# Sample inventory is okay to commit
+!inventories/production/hosts.sample
+
 # Ansible specific
 *.retry
 .ansible/
