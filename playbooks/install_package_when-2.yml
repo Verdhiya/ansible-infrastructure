@@ -1,0 +1,29 @@
+---
+- hosts: all
+  become: true
+  tasks:
+
+    - name: install Apache2 package
+      apt:
+        name: apache2
+      when: ansible_facts['distribution'] in ["Ubuntu", "Debian"]
+
+    - name: update repo index
+      apt:
+        update_cache: true
+      when: ansible_facts['distribution'] in ["Ubuntu", "Debian"]
+
+    - name: add PHP support for Apache
+      apt:
+        name: libapache2-mod-php
+      when: ansible_facts['distribution'] in ["Ubuntu", "Debian"]
+
+    - name: install Apache package
+      dnf:
+        name: httpd
+      when: ansible_facts['distribution'] in ["CentOS", "Rocky", "AlmaLinux"]
+
+    - name: install PHP support for Apache
+      dnf:
+        name: php
+      when: ansible_facts['distribution'] in ["CentOS", "Rocky", "AlmaLinux"]

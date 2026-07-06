@@ -1,0 +1,23 @@
+---
+- hosts: all
+  become: true
+  tasks:
+
+    - name: install Apache2 package
+      apt:
+        name: apache2
+      when: ansible_facts['distribution'] in ["Ubuntu", "CentOS"]
+
+    # - name: install pickaboo package
+    #   apt:
+    #     name: pickaboo
+
+    - name: update repo index
+      apt:
+        update_cache: true
+      when: ansible_facts['distribution'] in ["Ubuntu", "CentOS"]
+
+    - name: add PHP support for Apache
+      apt:
+        name: libapache2-mod-php
+      when: ansible_facts['distribution'] in ["Ubuntu", "CentOS"]
