@@ -34,7 +34,8 @@ Ansible automation for managing web servers and database infrastructure on Oracl
 - **Control Node:** ansible-control
 - **Web Servers:** 🌐 web-01, web-02, web-03
 - **Database:** 🗄️ db-01
-- **OS:** 🐧 Ubuntu 24.04 LTS
+- **CentOS Server:** 🎩 centos-01 (RedHat family — multi-OS branching target)
+- **OS:** 🐧 Ubuntu 24.04 LTS (Debian family) + CentOS (RedHat family)
 - **Ansible Version:** ⚙️ 14.1.0 (core 2.21.1)
 - **Python Version:** 🐍 3.12.3
 
@@ -48,12 +49,14 @@ graph TB
     A --> C[web-02<br/>Web Server]
     A --> D[web-03<br/>Web Server]
     A --> E[db-01<br/>Database Server]
+    A --> F[centos-01<br/>Web Server<br/>RedHat family]
     
     style A fill:#4CAF50,stroke:#333,stroke-width:2px,color:#fff
     style B fill:#2196F3,stroke:#333,stroke-width:2px,color:#fff
     style C fill:#2196F3,stroke:#333,stroke-width:2px,color:#fff
     style D fill:#2196F3,stroke:#333,stroke-width:2px,color:#fff
     style E fill:#FF9800,stroke:#333,stroke-width:2px,color:#fff
+    style F fill:#9C27B0,stroke:#333,stroke-width:2px,color:#fff
 ```
 
 ---
@@ -97,6 +100,35 @@ flowchart LR
 
 ---
 
+## 🐧 Multi-OS Package Management (`when` + `os_family`)
+
+Playbooks branch package-manager logic by OS family rather than hardcoding distro names — scales cleanly to Rocky/Alma/Fedora without touching the `when` clause.
+
+```mermaid
+flowchart TD
+    A[Gather Facts] --> B{ansible_facts os_family}
+    B -->|Debian| C[apt: install apache2]
+    B -->|RedHat| D[dnf: install httpd]
+    C --> E[apt: update repo index]
+    D --> F[dnf: install php]
+    E --> G[apt: install libapache2-mod-php]
+    G --> H[Play Recap]
+    F --> H
+    
+    style B fill:#fff9c4
+    style H fill:#c8e6c9
+```
+
+
+| File | Purpose |
+|------|---------|
+| `install_package_when.yml` | Early version — demonstrates a category error (distro-name `when` + wrong module) triggering a genuine task `failed` state |
+| `install_package_when-2.yml` | Corrected version — branches `apt`/`dnf` tasks explicitly via `ansible_facts['os_family']` |
+
+> **Note:** CentOS service enablement (`systemd`) and firewall rules (`ansible.posix.firewalld`) are intentionally left out of `install_package_when-2.yml` for now, to keep the Debian-vs-RedHat post-install differences visible and hand-run for learning purposes.
+
+---
+
 ## 📁 Project Structure
 ```
 ansible/
@@ -108,7 +140,9 @@ ansible/
 │       ├── group_vars/
 │       └── host_vars/
 ├── playbooks/
-│   └── system-info.yml
+│   ├── system-info.yml
+│   ├── install_package_when.yml
+│   └── install_package_when-2.yml
 ├── roles/
 ├── files/
 └── templates/
