@@ -1,0 +1,5 @@
+---
+apache_package: httpd
+php_package: php
+apache_service: httpd
+configure_firewall: true

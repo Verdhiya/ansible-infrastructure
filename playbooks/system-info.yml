@@ -1,24 +1,26 @@
 ---
 - name: Gather System Information
   hosts: all
-  become: yes
+  become: true
   tasks:
-    - name: Update apt cache
-      apt:
-        update_cache: yes
+    - name: Update apt cache (Debian/Ubuntu only)
+      ansible.builtin.apt:
+        update_cache: true
         cache_valid_time: 3600
+      when: ansible_facts['os_family'] == "Debian"
       
     - name: Display OS information
-      debug:
+      ansible.builtin.debug:
         msg: |
           Hostname: {{ ansible_facts['hostname'] }}
           OS: {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}
-          IP: {{ ansible_facts['default_ipv4']['address'] }}
+          IP: {{ ansible_facts['default_ipv4']['address'] | default('N/A') }}
 
     - name: Check disk usage
-      shell: df -h /
+      ansible.builtin.command: df -h /
       register: disk_usage
+      changed_when: false
       
     - name: Show disk usage
-      debug:
+      ansible.builtin.debug:
         var: disk_usage.stdout_lines

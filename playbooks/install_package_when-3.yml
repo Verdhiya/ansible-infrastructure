@@ -1,0 +1,23 @@
+---
+- hosts: all
+  become: true
+  tasks:
+
+    - name: Update cache and install Apache and PHP (Debian/Ubuntu)
+      ansible.builtin.apt:
+        name:
+          - apache2
+          - libapache2-mod-php
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Install Apache and PHP (RHEL-based)
+      ansible.builtin.dnf:
+        name:
+          - httpd
+          - php
+        state: present
+        update_cache: true
+      when: ansible_facts['os_family'] == "RedHat"

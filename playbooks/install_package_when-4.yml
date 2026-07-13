@@ -1,0 +1,26 @@
+---
+- name: Install and configure Apache web server
+  hosts: all
+  become: true
+  tasks:
+
+    - name: Install Apache and PHP
+      ansible.builtin.package:
+        name:
+          - "{{ apache_package }}"
+          - "{{ php_package }}"
+        state: present
+
+    - name: Start and enable Apache service
+      ansible.builtin.service:
+        name: "{{ apache_service }}"
+        state: started
+        enabled: true
+
+    - name: Configure firewall for HTTP (RHEL/CentOS only)
+      ansible.posix.firewalld:
+        service: http
+        permanent: true
+        state: enabled
+        immediate: true
+      when: configure_firewall | default(false)

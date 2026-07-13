@@ -3,13 +3,20 @@
 - hosts: all
   become: true
   tasks:
-  
-  - name: remove apache2 package
-    apt:
-      name: apache2
-      state: absent
+    #  
+    #  - name: remove apache2 package
+    #    apt:
+      #      name: apache2
+        #      state: absent
+        #
+        #  - name: remove  php support for apache
+    #    apt:
+      #      name: libapache2-mod-php
+        #      state: absent
 
-  - name: remove  php support for apache
-    apt:
-      name: libapache2-mod-php
-      state: absent
+    - name: Remove Apache and PHP
+      ansible.builtin.package:
+        name:
+          - "{{ apache_package }}"
+          - "{{ php_package }}"
+        state: absent
