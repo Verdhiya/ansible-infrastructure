@@ -4,6 +4,7 @@
 
 ![Ansible](https://img.shields.io/badge/Ansible-14.1.0-EE0000?style=for-the-badge&logo=ansible&logoColor=white)
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-24.04_LTS-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)
+![CentOS](https://img.shields.io/badge/CentOS_Stream_9-262577?style=for-the-badge&logo=centos&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.12.3-3776AB?style=for-the-badge&logo=python&logoColor=white)
 
 **Automation for Managing Web Servers & Database Infrastructure**
@@ -13,13 +14,14 @@
 ---
 
 ## 📋 Overview
-Ansible automation for managing web servers and database infrastructure on Oracle VM Ubuntu 24.04 LTS.
+Ansible automation for managing web servers and database infrastructure across a mixed Ubuntu 24.04 LTS (Debian family) and CentOS (RedHat family) Oracle VM fleet.
 
 ## 🛠️ Tech Stack
 
 <p align="center">
   <img src="https://img.shields.io/badge/Ansible-EE0000?style=for-the-badge&logo=ansible&logoColor=white" alt="Ansible"/>
   <img src="https://img.shields.io/badge/Ubuntu-E95420?style=for-the-badge&logo=ubuntu&logoColor=white" alt="Ubuntu"/>
+  <img src="https://img.shields.io/badge/CentOS-262577?style=for-the-badge&logo=centos&logoColor=white" alt="CentOS"/>
   <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"/>
   <img src="https://img.shields.io/badge/Oracle_VM-F80000?style=for-the-badge&logo=oracle&logoColor=white" alt="Oracle VM"/>
   <img src="https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white" alt="Git"/>
@@ -129,6 +131,28 @@ flowchart TD
 
 ---
 
+## 🧩 Variable-Driven Installs (`group_vars`)
+
+`install_package_when-4.yml` uses the generic `ansible.builtin.package` module with OS-specific package names sourced from `group_vars`, instead of branching per task:
+
+```yaml
+- name: Install Apache and PHP
+  ansible.builtin.package:
+    name:
+      - "{{ apache_package }}"
+      - "{{ php_package }}"
+    state: present
+```
+
+| Group | `apache_package` | `php_package` |
+|-------|-------------------|----------------|
+| webservers | apache2 | libapache2-mod-php |
+| centos | httpd | php |
+
+`remove_package.yml` uses the same pattern with `state: absent`, scoped via `--limit` for targeted cleanup.
+
+---
+
 ## 📁 Project Structure
 ```
 ansible/
@@ -138,11 +162,17 @@ ansible/
 │   └── production/
 │       ├── hosts.sample
 │       ├── group_vars/
+│       │   ├── webservers.yml
+│       │   ├── centos.yml
+│       │   └── database.yml
 │       └── host_vars/
 ├── playbooks/
 │   ├── system-info.yml
 │   ├── install_package_when.yml
-│   └── install_package_when-2.yml
+│   ├── install_package_when-2.yml
+│   ├── install_package_when-3.yml
+│   ├── install_package_when-4.yml
+│   └── remove_package.yml
 ├── roles/
 ├── files/
 └── templates/
@@ -441,6 +471,7 @@ flowchart TD
 | `ansible-inventory --list` | Show inventory |
 | `ansible-doc <module>` | Module documentation |
 | `ansible all -a "command"` | Run ad-hoc command |
+| `ansible-lint playbook.yml --profile production` | Lint against strictest rule profile |
 
 ---
 
