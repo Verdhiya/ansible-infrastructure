@@ -1,5 +1,21 @@
 ---
+
+# Packages
 apache_package: httpd
 php_package: php
 apache_service: httpd
+
+
+# Firewall
 configure_firewall: true
+
+
+# Apache Virtual Host
+apache_document_root: /var/www/infrastructure-dashboard
+apache_vhost_file: /etc/httpd/conf.d/infrastructure-dashboard.conf
+apache_enabled_dir: ""
+apache_config_test: httpd -t
+
+
+# [Log]
+apache_log_dir: /var/log/httpd

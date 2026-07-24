@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Infrastructure Health Dashboard</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    background:#0f172a;
+    color:#f8fafc;
+    font-family:Arial, Helvetica, sans-serif;
+}
+
+.container{
+    width:95%;
+    max-width:1000px;
+    margin:40px auto;
+}
+
+header{
+    text-align:center;
+    margin-bottom:30px;
+}
+
+header h1{
+    color:#38bdf8;
+    margin-bottom:8px;
+}
+
+header p{
+    color:#94a3b8;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(350px,1fr));
+    gap:20px;
+}
+
+.card{
+    background:#1e293b;
+    border-radius:12px;
+    padding:20px;
+    box-shadow:0 8px 20px rgba(0,0,0,.30);
+}
+
+.card h2{
+    color:#22c55e;
+    margin-bottom:15px;
+    border-bottom:1px solid #334155;
+    padding-bottom:10px;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+td{
+    padding:10px 0;
+    border-bottom:1px solid #334155;
+}
+
+td:first-child{
+    color:#cbd5e1;
+    width:45%;
+}
+
+.value{
+    text-align:right;
+    font-weight:bold;
+    color:white;
+}
+
+.badge{
+    background:#16a34a;
+    color:white;
+    padding:4px 10px;
+    border-radius:20px;
+    font-size:.85rem;
+}
+
+footer{
+    margin-top:30px;
+    text-align:center;
+    color:#94a3b8;
+    font-size:.9rem;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<header>
+<h1>Infrastructure Health Dashboard</h1>
+<p>Rendered dynamically using Ansible &amp; Jinja2</p>
+</header>
+
+<div class="grid">
+
+<div class="card">
+
+<h2>Server Information</h2>
+
+<table>
+
+<tr>
+<td>Hostname</td>
+<td class="value">{{ inventory_hostname }}</td>
+</tr>
+
+<tr>
+<td>Role</td>
+<td class="value">{{ group_names | join(', ') }}</td>
+</tr>
+
+<tr>
+<td>Operating System</td>
+<td class="value">{{ ansible_facts.distribution }}</td>
+</tr>
+
+<tr>
+<td>OS Version</td>
+<td class="value">{{ ansible_facts.distribution_version }}</td>
+</tr>
+
+<tr>
+<td>Kernel</td>
+<td class="value">{{ ansible_facts.kernel }}</td>
+</tr>
+
+<tr>
+<td>Architecture</td>
+<td class="value">{{ ansible_facts.architecture }}</td>
+</tr>
+
+</table>
+
+</div>
+
+<div class="card">
+
+<h2>Hardware</h2>
+
+<table>
+
+<tr>
+<td>CPU vCPUs</td>
+<td class="value">{{ ansible_facts.processor_vcpus }}</td>
+</tr>
+
+<tr>
+<td>Total Memory</td>
+<td class="value">{{ ansible_facts.memtotal_mb }} MB</td>
+</tr>
+
+<tr>
+<td>Disk</td>
+<td class="value">Coming Soon</td>
+</tr>
+
+</table>
+
+</div>
+
+<div class="card">
+
+<h2>Services</h2>
+
+<table>
+
+<tr>
+<td>Apache</td>
+<td class="value">
+<span class="badge">Running</span>
+</td>
+</tr>
+
+<tr>
+<td>Website</td>
+<td class="value">
+<span class="badge">Healthy</span>
+</td>
+</tr>
+
+</table>
+
+</div>
+
+<div class="card">
+
+<h2>Deployment</h2>
+
+<table>
+
+<tr>
+<td>Managed By</td>
+<td class="value">Ansible</td>
+</tr>
+
+<tr>
+<td>Template Engine</td>
+<td class="value">Jinja2</td>
+</tr>
+
+<tr>
+<td>Generated On</td>
+<td class="value">{{ ansible_facts.date_time.date }}</td>
+</tr>
+
+<tr>
+<td>Generated At</td>
+<td class="value">{{ ansible_facts.date_time.time }}</td>
+</tr>
+
+</table>
+
+</div>
+
+</div>
+
+<footer>
+
+Infrastructure Dashboard • Generated from a single Jinja2 template using Ansible facts
+
+</footer>
+
+</div>
+
+</body>
+</html>

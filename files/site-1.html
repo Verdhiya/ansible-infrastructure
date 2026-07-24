@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ansible Test Page</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 80px auto;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        h1 {
+            color: #2c3e50;
+        }
+
+        h2 {
+            color: #27ae60;
+        }
+
+        p {
+            font-size: 18px;
+            line-height: 1.6;
+        }
+
+        footer {
+            margin-top: 30px;
+            color: #777;
+            font-size: 14px;
+        }
+
+        code {
+            background: #eee;
+            padding: 3px 6px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🚀 Ansible Deployment Successful!</h1>
+
+    <h2>Welcome to the Web Server</h2>
+
+    <p>
+        This page was deployed automatically using
+        <strong>Ansible</strong>.
+    </p>
+
+    <p>
+        Hostname:
+        <code id="hostname">Unknown</code>
+    </p>
+
+    <p>
+        Deployment Time:
+        <code id="datetime"></code>
+    </p>
+
+    <footer>
+        DevOps Practice | Linux • Ansible • Apache/Nginx
+    </footer>
+</div>
+
+<script>
+    document.getElementById("datetime").innerHTML = new Date().toLocaleString();
+    document.getElementById("hostname").innerHTML = window.location.hostname || "localhost";
+</script>
+
+</body>
+</html>

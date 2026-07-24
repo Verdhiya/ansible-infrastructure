@@ -1,4 +1,19 @@
 ---
+
+# [Packages]
+
 apache_package: apache2
 php_package: libapache2-mod-php
 apache_service: apache2
+
+
+# [Apache Virtual Host Configuration] 
+
+apache_document_root: /var/www/infrastructure-dashboard
+apache_vhost_file: /etc/apache2/sites-available/infrastructure-dashboard.conf
+apache_enabled_dir: /etc/apache2/sites-enabled
+apache_config_test: apache2ctl configtest
+
+
+# [Log]
+apache_log_dir: /var/log/apache2
