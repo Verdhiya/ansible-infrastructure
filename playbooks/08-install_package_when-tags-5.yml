@@ -1,0 +1,67 @@
+---
+- name: Installing and Configuring packages Apache, PHP & MariaDB.
+  hosts: all
+  become: true
+  pre_tasks:
+    
+  - name: Installing Updates
+    tags: always
+    ansible.builtin.dnf:
+      update_only: true
+      update_cache: true
+    when: ansible_facts['os_family'] == "RedHat"
+  
+  - name: Update apt cache (Debian/Ubuntu only)
+    tags: always
+    ansible.builtin.apt:
+      update_cache: true
+      cache_valid_time: 3600
+    when: ansible_facts['os_family'] == "Debian"
+
+
+- name: Install and configure Apache web server
+  hosts: webservers:centos
+  become: true
+  tasks:
+
+    - name: Install Apache and PHP
+      tags: apache,apache2,ubuntu
+      ansible.builtin.package:
+        name:
+          - "{{ apache_package }}"
+          - "{{ php_package }}"
+        state: present
+
+    - name: Start and enable Apache service
+      tags: apache,httpd,centos
+      ansible.builtin.service:
+        name: "{{ apache_service }}"
+        state: started
+        enabled: true
+
+    - name: Configure firewall for HTTP (RHEL/CentOS only)
+      tags: httpd,centos,apache
+      ansible.posix.firewalld:
+        service: http
+        permanent: true
+        state: enabled
+        immediate: true
+      when: configure_firewall | default(false)
+
+- name: Installing MariaDB
+  hosts: database
+  become: true
+  tasks:
+
+    - name: Install MariaDB
+      tags: db
+      ansible.builtin.package:
+        name: "{{mariadb_package}}"
+        state: present
+
+    - name: Start and enable MariaDB-Server service
+      tags: db
+      ansible.builtin.service:
+        name: "{{ mariadb_service }}"
+        state: started
+        enabled: true
