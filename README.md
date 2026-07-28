@@ -173,22 +173,25 @@ flowchart LR
 
 **`hosts:` selects the target set. `when:` only filters *within* that set — it can't remove a host `hosts:` already included.**
 
+**Before fix — `hosts: all`:**
+
 ```mermaid
-flowchart TD
-    subgraph Before["Before fix — hosts: all"]
-        A1[hosts: all] --> B1[web-01 / web-02 / web-03 / centos-01 / db-01 all in scope]
-        B1 --> C1["when: os_family == Debian"]
-        C1 --> D1["db-01 IS Debian family (Ubuntu) → condition TRUE"]
-        D1 --> E1["Apache/PHP silently installed on db-01"]
-    end
+flowchart LR
+    A["hosts: all"] --> B["ALL hosts in scope<br/>web-01/02/03, centos-01, db-01"]
+    B --> C{"when:<br/>os_family == Debian?"}
+    C -->|"db-01 is Debian too"| D["❌ Apache/PHP installed<br/>on db-01"]
 
-    subgraph After["After fix — hosts: webservers:centos"]
-        A2["hosts: webservers:centos"] --> B2["Only web-01 / web-02 / web-03 / centos-01 in scope"]
-        B2 --> C2["db-01 never enters the play — when: never even evaluated for it"]
-    end
+    style D fill:#ffcdd2,stroke:#c62828
+```
 
-    style E1 fill:#ffcdd2
-    style C2 fill:#c8e6c9
+**After fix — `hosts: webservers:centos`:**
+
+```mermaid
+flowchart LR
+    A["hosts: webservers:centos"] --> B["Only web-01/02/03<br/>+ centos-01 in scope"]
+    B --> C["✅ db-01 never enters<br/>the play at all"]
+
+    style C fill:#c8e6c9,stroke:#2e7d32
 ```
 
 This is exactly why `db-01` had Apache/PHP silently installed on it since Day 3 — `when:` was doing its job correctly, `hosts: all` was the actual bug.
