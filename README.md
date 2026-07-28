@@ -22,6 +22,8 @@ Ansible automation for managing web servers and database infrastructure across a
   <img src="https://img.shields.io/badge/Ansible-EE0000?style=for-the-badge&logo=ansible&logoColor=white" alt="Ansible"/>
   <img src="https://img.shields.io/badge/Ubuntu-E95420?style=for-the-badge&logo=ubuntu&logoColor=white" alt="Ubuntu"/>
   <img src="https://img.shields.io/badge/CentOS-262577?style=for-the-badge&logo=centos&logoColor=white" alt="CentOS"/>
+  <img src="https://img.shields.io/badge/Apache-D22128?style=for-the-badge&logo=apache&logoColor=white" alt="Apache"/>
+  <img src="https://img.shields.io/badge/Jinja2-B41717?style=for-the-badge&logo=jinja&logoColor=white" alt="Jinja2"/>
   <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"/>
   <img src="https://img.shields.io/badge/Oracle_VM-F80000?style=for-the-badge&logo=oracle&logoColor=white" alt="Oracle VM"/>
   <img src="https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white" alt="Git"/>
@@ -40,6 +42,8 @@ Ansible automation for managing web servers and database infrastructure across a
 - **OS:** 🐧 Ubuntu 24.04 LTS (Debian family) + CentOS (RedHat family)
 - **Ansible Version:** ⚙️ 14.1.0 (core 2.21.1)
 - **Python Version:** 🐍 3.12.3
+
+> **Note:** `db-01` is inventory-only at this stage — no database playbooks exist yet. It currently appears in the codebase mainly as the target of a host-scope bug fix (see `07-remove_package.yml`), not as a managed service. Database automation (MySQL/PostgreSQL role, `community.mysql`) is on the roadmap, not yet built.
 
 ---
 
@@ -149,7 +153,112 @@ flowchart TD
 | webservers | apache2 | libapache2-mod-php |
 | centos | httpd | php |
 
-`07-remove_package.yml` uses the same pattern with `state: absent`, scoped via `hosts: webservers:centos` for targeted cleanup.
+**How `group_vars` actually resolves** — a host's group membership decides which file wins:
+
+```mermaid
+flowchart LR
+    A[Host: web-01] --> B[Group: webservers]
+    B --> C[group_vars/webservers.yml]
+    C --> D["apache_package: apache2"]
+
+    E[Host: centos-01] --> F[Group: centos]
+    F --> G[group_vars/centos.yml]
+    G --> H["apache_package: httpd"]
+
+    style D fill:#c8e6c9
+    style H fill:#c8e6c9
+```
+
+`07-remove_package.yml` uses the same pattern with `state: absent`, scoped via `hosts: webservers:centos` for targeted cleanup — a fix for a real bug worth visualizing, since it's an easy distinction to get wrong:
+
+**`hosts:` selects the target set. `when:` only filters *within* that set — it can't remove a host `hosts:` already included.**
+
+```mermaid
+flowchart TD
+    subgraph Before["Before fix — hosts: all"]
+        A1[hosts: all] --> B1[web-01 / web-02 / web-03 / centos-01 / db-01 all in scope]
+        B1 --> C1["when: os_family == Debian"]
+        C1 --> D1["db-01 IS Debian family (Ubuntu) → condition TRUE"]
+        D1 --> E1["Apache/PHP silently installed on db-01"]
+    end
+
+    subgraph After["After fix — hosts: webservers:centos"]
+        A2["hosts: webservers:centos"] --> B2["Only web-01 / web-02 / web-03 / centos-01 in scope"]
+        B2 --> C2["db-01 never enters the play — when: never even evaluated for it"]
+    end
+
+    style E1 fill:#ffcdd2
+    style C2 fill:#c8e6c9
+```
+
+This is exactly why `db-01` had Apache/PHP silently installed on it since Day 3 — `when:` was doing its job correctly, `hosts: all` was the actual bug.
+
+---
+
+## 🌐 Templates, Handlers & Virtual Hosts
+
+Playbooks 09–11 move past package management into actually serving content: static file deploy → Jinja2 templating → a full Apache virtual-host lifecycle with config validation. This is the most involved part of the repo so far.
+
+**Handler collapse** — four separate tasks `notify` the same handler; Ansible fires it once per play run, not four times:
+
+```mermaid
+flowchart TD
+    A[Task: Deploy vhost config] -->|notify| E[Reload Apache Handler]
+    B[Task: Enable vhost symlink] -->|notify| E
+    C[Task: Disable default site] -->|notify| E
+    D[Task: Validate config] -.->|no notify - read only| E
+    E --> F[Handler runs ONCE at end of play]
+
+    style E fill:#fff9c4
+    style F fill:#c8e6c9
+```
+
+### `09-install_package_when-tags-site-1.yml` — Static deploy (`copy`)
+Static `site-1.html` pushed as-is via `ansible.builtin.copy` — same bytes on every host, only the hostname differs because it's baked into the file per the group it targets.
+
+<img src="docs/screenshots/pb-09/files-web-01.png" width="600" alt="Static site output on web-01"/>
+
+<details>
+<summary>web-02, web-03, centos-01</summary>
+
+<img src="docs/screenshots/pb-09/files-web-02.png" width="600" alt="Static site output on web-02"/>
+<img src="docs/screenshots/pb-09/files-web-03.png" width="600" alt="Static site output on web-03"/>
+<img src="docs/screenshots/pb-09/files-centos-01.png" width="600" alt="Static site output on centos-01"/>
+
+</details>
+
+### `10-install_package_template-site-1.yml` — Jinja2 rendering (`template`)
+Swaps `copy` for `ansible.builtin.template` — `dashboard.html.j2` rendered per-host from live `ansible_facts` (hostname, OS, kernel, memory, vCPUs), not hardcoded.
+
+<img src="docs/screenshots/pb-10/template-web-01.png" width="600" alt="Rendered dashboard on web-01"/>
+
+<details>
+<summary>web-02, web-03, centos-01</summary>
+
+<img src="docs/screenshots/pb-10/template-web-02.png" width="600" alt="Rendered dashboard on web-02"/>
+<img src="docs/screenshots/pb-10/template-web-03.png" width="600" alt="Rendered dashboard on web-03"/>
+<img src="docs/screenshots/pb-10/template-centos-01.png" width="600" alt="Rendered dashboard on centos-01"/>
+
+</details>
+
+### `11-apache-virtual-host-1.yml` — Virtual host deploy
+Full vhost deployment: `ansible.builtin.file` (`directory`/`link`/`absent`), `handlers`/`notify`, config validation (`apache2ctl configtest` / `httpd -t`) before reload. Same dashboard content, now served through a dedicated vhost instead of the default site — visually identical to stage 10 by design, which is exactly what a config-validation step is supposed to prove (the migration didn't break anything).
+
+<img src="docs/screenshots/pb-11/apache-vhosts-web-01.png" width="600" alt="Vhost-served dashboard on web-01"/>
+
+<details>
+<summary>web-02, web-03, centos-01</summary>
+
+<img src="docs/screenshots/pb-11/apache-vhosts-web-02.png" width="600" alt="Vhost-served dashboard on web-02"/>
+<img src="docs/screenshots/pb-11/apache-vhosts-web-03.png" width="600" alt="Vhost-served dashboard on web-03"/>
+<img src="docs/screenshots/pb-11/apache-vhosts-centos-01.png" width="600" alt="Vhost-served dashboard on centos-01"/>
+
+</details>
+
+> **Real bugs hit building this (not hypothetical):**
+> - `ansible.builtin.file` with `state: link` refused to create a symlink to a target that didn't exist yet — fixed with `force: true`
+> - A vhost template put `ServerTokens`/`ServerSignature` inside `<VirtualHost>` — Apache's config grammar rejects both directives at that scope. Caught by an explicit `configtest` validation task (`changed_when: false`) before the reload, not by a broken page later
+> - The original template used Debian's `${APACHE_LOG_DIR}` env var for log paths — broke on centos-01 since `httpd` has no equivalent. Fixed by moving `apache_log_dir` into `group_vars` (`/var/log/apache2` vs `/var/log/httpd`) instead of relying on an Apache-internal, OS-specific variable — same pattern as the package-name and service-name branching above, just one layer deeper
 
 ---
 
@@ -157,6 +266,7 @@ flowchart TD
 ```
 .
 ├── ansible.cfg
+├── COMMANDS.md
 ├── docs/
 │   └── screenshots/
 │       ├── pb-09/
@@ -181,7 +291,9 @@ flowchart TD
 │   ├── 09-install_package_when-tags-site-1.yml
 │   ├── 10-install_package_template-site-1.yml
 │   └── 11-apache-virtual-host-1.yml
+├── README.md
 ├── roles/
+├── SETUP.md
 └── templates/
     ├── dashboard.html.j2
     └── infrastructure-dashboard.conf.j2
@@ -192,6 +304,19 @@ flowchart TD
 ## 🧭 How to Follow This Project
 
 Playbooks are numbered in build order — each one builds on a concept introduced by the last. Read/run them in sequence to follow the actual learning path:
+
+```mermaid
+flowchart LR
+    A["01-02<br/>Ad-hoc & first playbooks"] --> B["03-05<br/>when + os_family branching"]
+    B --> C["06-07<br/>group_vars driven installs"]
+    C --> D["08<br/>Tags & host scoping"]
+    D --> E["09<br/>Static deploy: copy"]
+    E --> F["10<br/>Jinja2: template"]
+    F --> G["11<br/>Vhost: handlers + config validation"]
+
+    style A fill:#e1f5ff
+    style G fill:#c8e6c9
+```
 
 | # | Playbook | Concept introduced |
 |---|----------|---------------------|
@@ -213,54 +338,6 @@ Playbooks are numbered in build order — each one builds on a concept introduce
 - `inventories/production/group_vars/` — per-group variables (package names, log paths, vhost paths) driving playbooks 06 and 11
 - `inventories/production/host_vars/` — scaffolded, not yet in active use
 - `roles/` — scaffolded, not yet in active use
-
----
-
-## 🖥️ Live Output
-
-Screenshots below live in `docs/screenshots/pb-09/`, `pb-10/`, `pb-11/`. Content is identical across all four webservers per stage (confirms correct multi-host deployment, not just one lucky host) — one host is shown inline per stage, the rest are in the collapsed section.
-
-### `09-install_package_when-tags-site-1.yml` — Static deploy (`copy`)
-Static `site-1.html` pushed as-is via `ansible.builtin.copy` — same bytes on every host, only the hostname differs because it's baked into the file per the group it targets.
-
-<img src="docs/screenshots/pb-09/files-web-01.png" width="600" alt="Static site output on web-01"/>
-
-<details>
-<summary>web-02, web-03, centos-01</summary>
-
-<img src="docs/screenshots/pb-09/files-web-02.png" width="600" alt="Static site output on web-02"/>
-<img src="docs/screenshots/pb-09/files-web-03.png" width="600" alt="Static site output on web-03"/>
-<img src="docs/screenshots/pb-09/files-centos-01.png" width="600" alt="Static site output on centos-01"/>
-
-</details>
-
-### `10-install_package_template-site-1.yml` — Jinja2 rendering (`template`)
-`dashboard.html.j2` rendered per-host from live `ansible_facts` — hostname, OS, kernel, memory, and vCPU count are all pulled from the actual target, not hardcoded.
-
-<img src="docs/screenshots/pb-10/template-web-01.png" width="600" alt="Rendered dashboard on web-01"/>
-
-<details>
-<summary>web-02, web-03, centos-01</summary>
-
-<img src="docs/screenshots/pb-10/template-web-02.png" width="600" alt="Rendered dashboard on web-02"/>
-<img src="docs/screenshots/pb-10/template-web-03.png" width="600" alt="Rendered dashboard on web-03"/>
-<img src="docs/screenshots/pb-10/template-centos-01.png" width="600" alt="Rendered dashboard on centos-01"/>
-
-</details>
-
-### `11-apache-virtual-host-1.yml` — Virtual host deploy
-Same dashboard content, now served through a dedicated Apache vhost (own document root, symlinked config, validated via `apache2ctl configtest`/`httpd -t` before reload) instead of the default site. Visually identical to stage 10 by design — this confirms the vhost migration didn't break anything, which is exactly what you want a config-validation step to prove.
-
-<img src="docs/screenshots/pb-11/apache-vhosts-web-01.png" width="600" alt="Vhost-served dashboard on web-01"/>
-
-<details>
-<summary>web-02, web-03, centos-01</summary>
-
-<img src="docs/screenshots/pb-11/apache-vhosts-web-02.png" width="600" alt="Vhost-served dashboard on web-02"/>
-<img src="docs/screenshots/pb-11/apache-vhosts-web-03.png" width="600" alt="Vhost-served dashboard on web-03"/>
-<img src="docs/screenshots/pb-11/apache-vhosts-centos-01.png" width="600" alt="Vhost-served dashboard on centos-01"/>
-
-</details>
 
 ---
 
