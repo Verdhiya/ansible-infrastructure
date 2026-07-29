@@ -177,7 +177,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    A["hosts: all"] --> B["ALL hosts in scope<br/>web-01/02/03, centos-01, db-01"]
+    A["hosts: all"] --> B["ALL hosts in scope:<br/>web-01/02/03, centos-01,<br/>db-01"]
     B --> C{"when:<br/>os_family == Debian?"}
     C -->|"db-01 is Debian too"| D["❌ Apache/PHP installed<br/>on db-01"]
 
